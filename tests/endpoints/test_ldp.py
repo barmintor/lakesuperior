@@ -1,5 +1,7 @@
+import io
 import pdb
 import pytest
+import tempfile
 import uuid
 
 from hashlib import sha1
@@ -173,6 +175,37 @@ class TestLdp:
                 '/ldp/ldpnr02', headers={'accept' : 'image/png'})
         assert resp.status_code == 200
         assert sha1(resp.data).hexdigest() == rnd_img['hash']
+
+
+    def test_put_ldp_nr_external(self, rnd_img):
+        '''
+        PUT a LDP-NR with external/referenced binary content.
+        '''
+        rnd_img['content'].seek(0)
+        temp_dir = tempfile.TemporaryDirectory()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_file = temp_dir + '/' + rnd_img['filename']
+            with io.open(temp_file, mode='wb') as sink:
+                sink.write(rnd_img['content'].getbuffer())
+            temp_uri = "file:" + temp_file
+
+            resp = self.client.post(
+                '/ldp',
+                headers={
+                    'Slug' : 'ldpnr03',
+                    'Content-Type' : 'message/external-body; access-type=URL; URL="{0}"'.format(temp_uri)
+                }
+            )
+            assert resp.status_code == 201
+
+            resp = self.client.get(
+                    '/ldp/ldpnr03', headers={'accept' : 'image/png'})
+            assert resp.status_code == 200
+            assert sha1(resp.data).hexdigest() == rnd_img['hash']
+            # deleting should not delete the referenced file
+            resp = self.client.delete('/ldp/ldpnr03')
+            assert resp.status_code == 204
+            assert os.path.isfile(temp_file)
 
 
     def test_put_mismatched_ldp_rs(self, rnd_img):
