@@ -49,7 +49,15 @@ class LdpNr(Ldpr):
                     if self.is_stored
                     else 'application/octet-stream')
         else:
-            self.mimetype = mimetype
+            if 'message/external-body' in mimetype:
+                params = self._parse_content_type(mimetype)
+                logger.warn("parsing message/external-body")
+                if 'URL' in params:
+                    logger.warn(params["URL"])
+                    self.local_path = params["URL"]
+                    self.mimetype = 'message/external-body'
+            else:
+                self.mimetype = mimetype
 
         self.disposition = disposition
 
@@ -145,3 +153,13 @@ class LdpNr(Ldpr):
                 self.disposition['attachment']['parameters']['filename'])))
         except (KeyError, TypeError) as e:
             pass
+
+
+    def _parse_content_type(self,content_type):
+        """
+        Parse message/external-body content-type
+        """
+        logger.warn(content_type)
+        strip = lambda x: x.strip()
+        return dict([tuple(x.strip().split('=')) for x in content_type.split(';') if '=' in x])
+

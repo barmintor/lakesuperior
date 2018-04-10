@@ -492,7 +492,7 @@ def _bistream_from_req():
         # This is how FCREPO4 accepts binary uploads.
         stream = request.stream
         # @FIXME Must decide what to do with this.
-        mimetype = request.mimetype
+        mimetype = request.headers['Content-Type']
 
     if mimetype == '' or mimetype == 'application/x-www-form-urlencoded':
         if getattr(stream, 'limit', 0) == 0:
